@@ -148,7 +148,8 @@ export default function ProverbQuiz() {
     const lastMsg = messages[messages.length - 1];
     const correct = lastMsg.parsed?.answer;
     if (correct && optionNum !== correct) setShowScolded(true);
-    const newMsgs = [...messages, { role: 'user', content: `${optionNum}번을 선택했습니다.` }];
+    const selectedText = lastMsg.parsed?.options?.find(o => o.num === optionNum)?.text || '';
+    const newMsgs = [...messages, { role: 'user', content: `${optionNum}번 "${selectedText}"을 선택했습니다.` }];
     setMessages(newMsgs);
     setLoading(true);
     try {
