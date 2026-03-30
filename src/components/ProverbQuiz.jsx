@@ -126,7 +126,7 @@ export default function ProverbQuiz() {
     if (!p) return;
     const { proverb, meaning, situation, wrong } = p;
     const [wrong1, wrong2, wrong3] = wrong;
-    const prompt = `다음 속담으로 퀴즈를 출제해주세요.\n\n속담: "${proverb}"\n뜻: ${meaning}\n상황 예시: ${situation}\n오답 보기: ${wrong1}, ${wrong2}, ${wrong3}\n\n위 정보를 활용해 훈장님 말투로 상황을 생생하게 묘사하고, 4개 보기를 제시하세요. 정답은 위 속담이며, 오답 3개는 위 오답 재료를 활용하되 순서를 섞어주세요. 반드시 마지막 줄에 [ANSWER:N] 형식으로 정답 번호를 표시하세요.`;
+    const prompt = `다음 속담으로 퀴즈를 출제해주세요.\n\n속담: "${proverb}"\n뜻: ${meaning}\n상황 예시: ${situation}\n오답 보기: ${wrong1}, ${wrong2}, ${wrong3}\n\n위 정보를 활용해 훈장님 말투로 상황을 생생하게 묘사하고, 보기는 본문에 넣지 말고 아래 형식으로만 제시하세요:\n1) 속담\n2) 속담\n3) 속담\n4) 속담\n정답은 위 속담이며, 오답 3개는 위 오답 재료를 활용하되 순서를 섞어주세요. 반드시 마지막 줄에 [ANSWER:N] 형식으로 정답 번호를 표시하세요.`;
     const newMsgs = [...messages, { role: 'user', content: prompt }];
     try {
       const reply = await callAPI(newMsgs, 'quiz');
