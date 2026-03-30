@@ -149,7 +149,10 @@ export default function ProverbQuiz() {
     const correct = lastMsg.parsed?.answer;
     if (correct && optionNum !== correct) setShowScolded(true);
     const selectedText = lastMsg.parsed?.options?.find(o => o.num === optionNum)?.text || '';
-    const newMsgs = [...messages, { role: 'user', content: `${optionNum}번 "${selectedText}"을 선택했습니다.` }];
+    const lastChar = selectedText.charCodeAt(selectedText.length - 1);
+    const hasBatchim = (lastChar - 0xAC00) % 28 !== 0;
+    const eul = hasBatchim ? '을' : '를';
+    const newMsgs = [...messages, { role: 'user', content: `${optionNum}번 "${selectedText}"${eul} 선택했습니다.` }];
     setMessages(newMsgs);
     setLoading(true);
     try {
