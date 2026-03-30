@@ -220,11 +220,8 @@ export default function ProverbQuiz() {
             overflow: 'hidden', flexShrink: 0,
             border: '2px solid rgba(200,131,59,0.5)',
             boxShadow: '0 0 20px rgba(200,131,59,0.3)',
-            background: 'rgba(200,131,59,0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24,
           }}>
-            🎋
+            <img src={TEACHER_IMG} alt="훈장님" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top'}} />
           </div>
           <div>
             <div style={{ color: '#f0e6d3', fontWeight: 700, fontSize: 18, letterSpacing: '0.04em' }}>속담 훈장님</div>
@@ -275,13 +272,11 @@ export default function ProverbQuiz() {
                 <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                    background: 'rgba(200,131,59,0.2)',
+                    overflow: 'hidden',
                     border: '1.5px solid rgba(200,131,59,0.4)',
                     boxShadow: '0 0 10px rgba(200,131,59,0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18,
                   }}>
-                    🎋
+                    <img src={TEACHER_IMG} alt="훈장님" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top'}} />
                   </div>
                   <div style={{
                     maxWidth: '80%', padding: '13px 16px',
@@ -339,12 +334,10 @@ export default function ProverbQuiz() {
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 16, animation: 'slideIn 0.3s ease' }}>
               <div style={{
                 width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                background: 'rgba(200,131,59,0.2)',
+                overflow: 'hidden',
                 border: '1.5px solid rgba(200,131,59,0.4)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 18,
               }}>
-                🎋
+                <img src={TEACHER_IMG} alt="훈장님" style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top'}} />
               </div>
               <div style={{
                 background: 'rgba(255,248,235,0.05)',
