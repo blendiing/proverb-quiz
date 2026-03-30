@@ -5,6 +5,9 @@ import { useState, useEffect, useRef } from 'react';
 const TEACHER_IMG = '/teacher.jpg';
 const SCOLDED_IMG_DATA = '/scolded.jpg';
 
+// 검증된 한국 속담 182개
+
+
 function parseQuiz(text) {
   const answerMatch = text.match(/\[ANSWER:(\d)\]/);
   const answer = answerMatch ? parseInt(answerMatch[1]) : null;
@@ -80,15 +83,23 @@ export default function ProverbQuiz() {
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState([{
     role: 'assistant',
-    content: '허허, 어서 오시게나! 🎋\n\n나는 속담 훈장님이라네. 오늘은 자네의 속담 실력을 한번 시험해보겠노라!\n\n준비가 되었으면 아래 버튼을 눌러보게나~',
+    content: '허허, 어서 오시게나! \n\n나는 속담 훈장님이라네. 오늘은 자네의 속담 실력을 한번 시험해보겠노라!\n\n준비가 되었으면 아래 버튼을 눌러보게나~',
     parsed: null,
   }]);
+  const [proverbs, setProverbs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showScolded, setShowScolded] = useState(false);
   const [quizActive, setQuizActive] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const [answered, setAnswered] = useState(false);
   const bottomRef = useRef(null);
+
+  useEffect(() => {
+    fetch('/proverbs.json')
+      .then(r => r.json())
+      .then(data => setProverbs(data))
+      .catch(() => console.error('속담 데이터를 불러오지 못했습니다.'));
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -110,7 +121,13 @@ export default function ProverbQuiz() {
     setQuizActive(true);
     setAnswered(false);
     setSelectedOption(null);
-    const newMsgs = [...messages, { role: 'user', content: '새로운 속담 퀴즈를 출제해주세요!' }];
+    // 목록에서 랜덤으로 속담 1개 선택
+    const p = proverbs[Math.floor(Math.random() * proverbs.length)];
+    if (!p) return;
+    const { proverb, meaning, situation, wrong } = p;
+    const [wrong1, wrong2, wrong3] = wrong;
+    const prompt = `다음 속담으로 퀴즈를 출제해주세요.\n\n속담: "${proverb}"\n뜻: ${meaning}\n상황 예시: ${situation}\n오답 보기: ${wrong1}, ${wrong2}, ${wrong3}\n\n위 정보를 활용해 훈장님 말투로 상황을 생생하게 묘사하고, 4개 보기를 제시하세요. 정답은 위 속담이며, 오답 3개는 위 오답 재료를 활용하되 순서를 섞어주세요. 반드시 마지막 줄에 [ANSWER:N] 형식으로 정답 번호를 표시하세요.`;
+    const newMsgs = [...messages, { role: 'user', content: prompt }];
     try {
       const reply = await callAPI(newMsgs, 'quiz');
       const parsed = parseQuiz(reply);
@@ -170,8 +187,8 @@ export default function ProverbQuiz() {
     setSelectedOption(null);
     setChatInput('');
     const greeting = newMode === 'chat'
-      ? '허허, 자유대화 모드로다! 🎋\n\n속담에 관해 무엇이든 물어보게나. 뜻이 궁금한 속담, 어떤 상황에 쓰이는지, 아니면 그냥 이야기도 좋으니라~'
-      : '허허, 퀴즈 모드로 돌아왔구나! 🎋\n\n자네의 속담 실력을 다시 시험해볼 차례라네. 준비가 되었으면 버튼을 눌러보게나~';
+      ? '허허, 자유대화 모드로다! \n\n속담에 관해 무엇이든 물어보게나. 뜻이 궁금한 속담, 어떤 상황에 쓰이는지, 아니면 그냥 이야기도 좋으니라~'
+      : '허허, 퀴즈 모드로 돌아왔구나! \n\n자네의 속담 실력을 다시 시험해볼 차례라네. 준비가 되었으면 버튼을 눌러보게나~';
     setMessages([{ role: 'assistant', content: greeting, parsed: null }]);
   };
 
@@ -357,30 +374,18 @@ export default function ProverbQuiz() {
           borderTop: '1px solid rgba(200,131,59,0.1)',
           background: 'rgba(139,90,43,0.04)',
         }}>
-          {mode === 'quiz' && (
-            <>
-              {showStartBtn && (
-                <button onClick={startQuiz} style={{
-                  width: '100%', padding: '14px',
-                  background: 'linear-gradient(135deg, #8b5a2b, #c8833b)',
-                  border: 'none', borderRadius: 14,
-                  color: '#fff8eb', fontSize: 16, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: "'Pretendard', sans-serif",
-                  boxShadow: '0 6px 24px rgba(200,131,59,0.4)',
-                  letterSpacing: '0.05em',
-                }}>🎋 퀴즈 시작하기</button>
-              )}
-              {showNextBtn && (
-                <button onClick={startQuiz} style={{
-                  width: '100%', padding: '13px',
-                  background: 'linear-gradient(135deg, #5c3a1e, #8b5a2b)',
-                  border: '1px solid rgba(200,131,59,0.4)',
-                  borderRadius: 14, color: '#f0e6d3', fontSize: 15, fontWeight: 600,
-                  cursor: 'pointer', fontFamily: "'Pretendard', sans-serif",
-                  letterSpacing: '0.04em',
-                }}>다음 문제 →</button>
-              )}
-            </>
+          {mode === 'quiz' && (showStartBtn || showNextBtn) && (
+            <button onClick={startQuiz} style={{
+              width: '100%', padding: '14px',
+              background: 'linear-gradient(135deg, #8b5a2b, #c8833b)',
+              border: 'none', borderRadius: 14,
+              color: '#fff8eb', fontSize: 16, fontWeight: 700,
+              cursor: 'pointer', fontFamily: "'Pretendard', sans-serif",
+              boxShadow: '0 6px 24px rgba(200,131,59,0.4)',
+              letterSpacing: '0.05em',
+            }}>
+              {answered ? '다음 문제 →' : '퀴즈 시작하기'}
+            </button>
           )}
 
           {mode === 'chat' && (
@@ -415,7 +420,7 @@ export default function ProverbQuiz() {
             </div>
           )}
           <div style={{ textAlign: 'center', marginTop: 10, color: 'rgba(200,131,59,0.25)', fontSize: 11 }}>
-            속담으로 지혜를 나누는 훈장님 · {mode === 'quiz' ? '틀리면 혼납니다 😤' : '무엇이든 물어보게나 🎋'}
+            속담으로 지혜를 나누는 훈장님 · {mode === 'quiz' ? '틀리면 혼납니다 😤' : '무엇이든 물어보게나 '}
           </div>
         </div>
       </div>
