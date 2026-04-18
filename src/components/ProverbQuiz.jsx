@@ -131,8 +131,8 @@ export default function ProverbQuiz() {
     const { proverb, meaning, situation, wrong } = p;
     const [wrong1, wrong2, wrong3] = wrong;
     const prompt = `다음 속담으로 퀴즈를 출제해주세요.\n\n속담: "${proverb}"\n뜻: ${meaning}\n상황 예시: ${situation}\n오답 보기: ${wrong1}, ${wrong2}, ${wrong3}\n\n위 정보를 활용해 훈장님 말투로 상황을 생생하게 묘사하고, 보기는 본문에 넣지 말고 아래 형식으로만 제시하세요:\n1) 속담\n2) 속담\n3) 속담\n4) 속담\n정답은 위 속담이며, 오답 3개는 위 오답 재료를 활용하되 순서를 섞어주세요. 반드시 마지막 줄에 [ANSWER:N] 형식으로 정답 번호를 표시하세요.`;
-    // API에는 프롬프트 전달, 화면에는 표시 안 함
-    const apiMsgs = [...messages, { role: 'user', content: prompt }];
+    // API에는 항상 새 컨텍스트만 전달 (이전 대화 오염 방지)
+    const apiMsgs = [{ role: 'user', content: prompt }];
     try {
       const reply = await callAPI(apiMsgs, 'quiz');
       const parsed = parseQuiz(reply);
@@ -158,6 +158,11 @@ export default function ProverbQuiz() {
     const eul = hasBatchim ? '을' : '를';
     const newMsgs = [...messages, { role: 'user', content: `${optionNum}번 "${selectedText}"${eul} 선택했습니다.` }];
     setMessages(newMsgs);
+    // API에는 직전 퀴즈 메시지 + 선택만 전달
+    const lastQuizMsg = messages[messages.length - 1];
+    const apiMsgs = lastQuizMsg
+      ? [{ role: 'assistant', content: lastQuizMsg.content }, { role: 'user', content: `${optionNum}번 "${selectedText}"${eul} 선택했습니다.` }]
+      : newMsgs;
     setLoading(true);
     try {
       const reply = await callAPI(newMsgs, 'quiz');
