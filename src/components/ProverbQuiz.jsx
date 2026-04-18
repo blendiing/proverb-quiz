@@ -13,13 +13,17 @@ function parseQuiz(text) {
   const answer = answerMatch ? parseInt(answerMatch[1]) : null;
   const clean = text.replace(/\[ANSWER:\d\]/g, '').trim();
   const options = [];
-  const optionRegex = /(?:([①②③④])|(\d)[\.번\)])\s*(.+)/g;
+  // 1) 1. 1번 ① 형식 모두 지원, 줄 단위로 파싱
+  const lines = clean.split('\n');
+  const optionRegex = /^\s*(?:([①②③④])|(\d))[\).번]\s*(.+)/;
   const circleMap = { '①': 1, '②': 2, '③': 3, '④': 4 };
-  let m;
-  while ((m = optionRegex.exec(clean)) !== null) {
-    const num = m[1] ? circleMap[m[1]] : parseInt(m[2]);
-    const txt = m[3].trim();
-    if (txt) options.push({ num, text: txt });
+  for (const line of lines) {
+    const m = line.match(optionRegex);
+    if (m) {
+      const num = m[1] ? circleMap[m[1]] : parseInt(m[2]);
+      const txt = m[3].trim();
+      if (txt && num >= 1 && num <= 4) options.push({ num, text: txt });
+    }
   }
   return { text: clean, options, answer };
 }
