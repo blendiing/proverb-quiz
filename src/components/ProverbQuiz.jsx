@@ -165,7 +165,7 @@ export default function ProverbQuiz() {
       : newMsgs;
     setLoading(true);
     try {
-      const reply = await callAPI(newMsgs, 'quiz');
+      const reply = await callAPI(apiMsgs, 'quiz');
       const parsed = parseQuiz(reply);
       const isNewQuiz = parsed.options.length >= 4 && parsed.answer !== null;
       setMessages([...newMsgs, { role: 'assistant', content: reply, parsed: isNewQuiz ? parsed : null }]);
