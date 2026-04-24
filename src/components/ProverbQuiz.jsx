@@ -42,7 +42,9 @@ function ScoldedOverlay({ visible, onDone }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'rgba(0,0,0,0.75)',
       animation: 'fadeIn 0.2s ease',
-    }}>
+      cursor: 'pointer',
+    }}
+    onClick={onDone}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
         <div style={{
           background: '#8b1a1a', color: '#fff',
@@ -91,6 +93,8 @@ export default function ProverbQuiz() {
     parsed: null,
   }]);
   const [proverbs, setProverbs] = useState([]);
+  const [recentIndexes, setRecentIndexes] = useState([]);
+  const [probError, setProbError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showScolded, setShowScolded] = useState(false);
   const [quizActive, setQuizActive] = useState(false);
@@ -102,7 +106,7 @@ export default function ProverbQuiz() {
     fetch('/proverbs.json')
       .then(r => r.json())
       .then(data => setProverbs(data))
-      .catch(() => console.error('속담 데이터를 불러오지 못했습니다.'));
+      .catch(() => setProbError(true));
   }, []);
 
   useEffect(() => {
@@ -121,13 +125,18 @@ export default function ProverbQuiz() {
   };
 
   const startQuiz = async () => {
+    if (loading) return;
     setLoading(true);
     setQuizActive(true);
     setAnswered(false);
     setSelectedOption(null);
     // 목록에서 랜덤으로 속담 1개 선택
-    const p = proverbs[Math.floor(Math.random() * proverbs.length)];
+    const available = proverbs.map((_, i) => i).filter(i => !recentIndexes.includes(i));
+    const pool = available.length > 0 ? available : proverbs.map((_, i) => i);
+    const idx = pool[Math.floor(Math.random() * pool.length)];
+    const p = proverbs[idx];
     if (!p) return;
+    setRecentIndexes(prev => [...prev.slice(-9), idx]);
     const { proverb, meaning, situation, wrong } = p;
     const [wrong1, wrong2, wrong3] = wrong;
     const prompt = `다음 속담으로 퀴즈를 출제해주세요.\n\n속담: "${proverb}"\n뜻: ${meaning}\n상황 예시: ${situation}\n오답 보기: ${wrong1}, ${wrong2}, ${wrong3}\n\n위 정보를 활용해 훈장님 말투로 상황을 생생하게 묘사하고, 보기는 본문에 넣지 말고 아래 형식으로만 제시하세요:\n1) 속담\n2) 속담\n3) 속담\n4) 속담\n정답은 위 속담이며, 오답 3개는 위 오답 재료를 활용하되 순서를 섞어주세요. 반드시 마지막 줄에 [ANSWER:N] 형식으로 정답 번호를 표시하세요.`;
@@ -139,7 +148,7 @@ export default function ProverbQuiz() {
       // 화면에는 assistant 답변만 추가 (유저 프롬프트 숨김)
       setMessages([...messages, { role: 'assistant', content: reply, parsed }]);
     } catch (e) {
-      setMessages([...newMsgs, { role: 'assistant', content: `허허, 소통이 어렵구만. (${e.message || '알 수 없는 오류'}) 다시 시도해보게나!`, parsed: null }]);
+      setMessages([...messages, { role: 'assistant', content: `허허, 소통이 어렵구만. (${e.message || '알 수 없는 오류'}) 다시 시도해보게나!`, parsed: null }]);
     } finally {
       setLoading(false);
     }
@@ -158,10 +167,16 @@ export default function ProverbQuiz() {
     const eul = hasBatchim ? '을' : '를';
     const newMsgs = [...messages, { role: 'user', content: `${optionNum}번 "${selectedText}"${eul} 선택했습니다.` }];
     setMessages(newMsgs);
-    // API에는 직전 퀴즈 메시지 + 선택만 전달
+    // 정답 정보를 명시적으로 전달 (Claude가 정답 번호를 헷갈리지 않도록)
+    const correctNum = correct;
+    const correctText = lastMsg.parsed?.options?.find(o => o.num === correctNum)?.text || '';
+    const isRight = optionNum === correctNum;
+    const feedbackPrompt = isRight
+      ? `정답이다! ${optionNum}번 "${selectedText}"${eul} 선택했고 이것이 정답이니라. 정답 속담의 뜻을 2~3문장으로 간결하게 설명해주게나.`
+      : `틀렸다! 선택한 것은 ${optionNum}번 "${selectedText}"이지만, 정답은 ${correctNum}번 "${correctText}"이니라. 정답 속담의 뜻을 2~3문장으로 간결하게 설명해주게나.`;
     const lastQuizMsg = messages[messages.length - 1];
     const apiMsgs = lastQuizMsg
-      ? [{ role: 'assistant', content: lastQuizMsg.content }, { role: 'user', content: `${optionNum}번 "${selectedText}"${eul} 선택했습니다.` }]
+      ? [{ role: 'assistant', content: lastQuizMsg.content }, { role: 'user', content: feedbackPrompt }]
       : newMsgs;
     setLoading(true);
     try {
@@ -196,6 +211,9 @@ export default function ProverbQuiz() {
   };
 
   const switchMode = (newMode) => {
+    if (quizActive && !answered && mode === 'quiz' && newMode !== mode) {
+      if (!window.confirm('퀴즈가 진행 중입니다. 모드를 전환하면 초기화됩니다. 계속하시겠습니까?')) return;
+    }
     setMode(newMode);
     setQuizActive(false);
     setAnswered(false);
@@ -296,7 +314,7 @@ export default function ProverbQuiz() {
             );
 
             const cleanText = parsed
-              ? msg.content.replace(/\[ANSWER:\d\]/g, '').replace(/(\d)[\.번\)]\s*.+(\n|$)/g, '').trim()
+              ? msg.content.replace(/\[ANSWER:\d\]/g, '').replace(/^\s*(?:[①②③④]|\d)[\).번]\s*.+$/gm, '').trim()
               : msg.content;
 
             return (
@@ -342,6 +360,7 @@ export default function ProverbQuiz() {
                             color, fontSize: 14, cursor: answered ? 'default' : 'pointer',
                             textAlign: 'left', fontFamily: "'Pretendard', sans-serif", lineHeight: 1.5,
                             display: 'flex', alignItems: 'center', gap: 10,
+                            wordBreak: 'keep-all',
                           }}>
                           <span style={{
                             width: 24, height: 24, borderRadius: '50%',
@@ -389,7 +408,13 @@ export default function ProverbQuiz() {
           borderTop: '1px solid rgba(200,131,59,0.1)',
           background: 'rgba(139,90,43,0.04)',
         }}>
-          {mode === 'quiz' && (showStartBtn || showNextBtn) && (
+          {mode === 'quiz' && probError && (
+            <div style={{ textAlign: 'center', color: '#ff8080', fontSize: 13, padding: '10px 0' }}>속담 데이터를 불러오지 못했습니다. 새로고침 해주세요.</div>
+          )}
+          {mode === 'quiz' && !probError && proverbs.length === 0 && !loading && (
+            <div style={{ textAlign: 'center', color: 'rgba(200,131,59,0.5)', fontSize: 13, padding: '10px 0' }}>속담 목록 불러오는 중...</div>
+          )}
+          {mode === 'quiz' && (showStartBtn || showNextBtn) && proverbs.length > 0 && (
             <button onClick={startQuiz} style={{
               width: '100%', padding: '14px',
               background: 'linear-gradient(135deg, #8b5a2b, #c8833b)',
@@ -415,7 +440,7 @@ export default function ProverbQuiz() {
                   flex: 1, background: 'rgba(200,131,59,0.07)',
                   border: '1px solid rgba(200,131,59,0.3)',
                   borderRadius: 12, padding: '11px 14px',
-                  color: '#f0e6d3', fontSize: 14, fontFamily: "'Pretendard', sans-serif",
+                  color: '#f0e6d3', fontSize: 16, fontFamily: "'Pretendard', sans-serif",
                   outline: 'none',
                 }}
               />
